@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>JvPeek Soundboard</title>
+    <style>
+        body, html {
+            padding: 0px;
+            margin: 0px;
+        }
+
+        body {
+            background-color: rgba(0, 0, 0, 0);
+            margin: 0px auto;
+            overflow: hidden;
+        }
+
+        video {
+            visibility: hidden;
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            width: 1920px;
+            height: 1080px;
+        }
+    </style>
+</head>
+<body onload="window.scrollTo(0, 0);">
+    <div id="soundsbox">loading players</div>
+
+    <script src="//unpkg.com/twitch-js@>2.0.0-beta.41"></script>
+    <script type="module">
+        let soundsEnabled = true;
+        let sounds = "";
+        let volume = "1";
+        let channel = "jvpeek";
+
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+
+        // Parse channel parameter
+        if (urlParams.has('channel')) channel = urlParams.get('channel');
+        if (urlParams.has('volume')) volume = urlParams.get('volume');
+        function reloadSounds() {
+            let url;
+            url = 'sounds/?channel=' + channel;
+            fetch(url)
+            .then(res => res.json())
+            .then((out) => {
+                sounds = out;
+                populate(sounds,"sounds");
+            })
+            .catch(err => { throw err });
+        }
+        reloadSounds();
+
+
+        function callback() {
+          for (var i=0; i<sounds.length;i++) {
+              if (msg.message.startsWith("!" + sounds[i].key)) {
+                  if (!sounds[i].username) {
+                      if (sounds[i].filetype=="webm") playVideo(sounds[i].key);
+                      if (sounds[i].filetype=="mp3") playSound(sounds[i].key);
+                  }
+              }
+          }
+        }
+        function populate(sounds, target) {
+            let players = "";
+            for (var i=0; i<sounds.length; i++) {
+                if (sounds[i].filetype == "mp3") {
+                    players += '<audio data-key="' + sounds[i].key + '"src="' + target + '/' + sounds[i].filename + '"></audio>';
+                }
+
+                if (sounds[i].filetype == "webm") {
+                    players += '<video data-key="' + sounds[i].key + '"> <source src="' + target + '/' + sounds[i].filename + '" type="video/webm" /></video>';
+                }
+            }
+
+            document.getElementById(target + "box").innerHTML = players;
+            console.log("loaded " + sounds.length + " sounds");
+
+        }
+
+        function playVideo(cmd) {
+            if (soundsEnabled == false) return;
+            const video = document.querySelector(`#soundsbox video[data-key="${cmd}"]`);
+            if (!video) return;
+
+            video.currentTime = 0;
+            video.style.visibility = "visible";
+            video.play();
+            video.addEventListener('ended', (event) => {
+                video.style.visibility = "hidden";
+                video.currentTime = 0;
+            });
+        }
+
+        function playSound(cmd) {
+            if (soundsEnabled == false) return;
+            const audio = document.querySelector(`#soundsbox audio[data-key="${cmd}"]`);
+            if (!audio) return;
+
+            audio.currentTime = 0;
+            audio.play();
+        }
+
+
+    </script>
+</body>
+</html>
